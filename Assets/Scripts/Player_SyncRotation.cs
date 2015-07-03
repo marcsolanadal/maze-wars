@@ -6,7 +6,7 @@ using System.Collections;
 public class Player_SyncRotation : NetworkBehaviour
 {
 	[SyncVar] Quaternion syncBodyRot; // We only need the Y axis
-	[SyncVar] Quaternion syncCamRot;	// We noly need the Z axis
+    [SyncVar] Quaternion syncCamRot; // We noly need the Z axis
 	
 	private Quaternion lastBodyRot;
 	private Quaternion lastCamRot;
