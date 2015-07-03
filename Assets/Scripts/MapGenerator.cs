@@ -59,10 +59,11 @@ public class Maze
     // This width and height are counting the walls.
     private int totalWidth;
     private int totalHeight;
+    private float corridorDirection;
 
     // Important maze positions
     private Cell start;
-    private Cell end; // TODO: Refactor to algorithmStartPoint
+    private Cell algorithmStartPoint; // TODO: Refactor to be random
     private Cell entrance;
 
     // Pseudo RNG
@@ -102,14 +103,14 @@ public class Maze
     //    this.width = width;
     //    this.height = height;
     //}
-    public Maze(int width, int height, Cell end, string seed)
+    public Maze(int width, int height, Cell algorithmStartPoint, string seed, float corridorDirection)
     {
         // Check if start and stop are cells or walls
         // We use the setter because we also apply the value to the map.
-        //this.width = width;
-        //this.height = height;
-        this.end = end;
+        exitCell = algorithmStartPoint;
+        this.algorithmStartPoint = algorithmStartPoint;
         this.seed = seed;
+        this.corridorDirection = corridorDirection;
 
         // Calculating maze size with walls
         totalWidth = 2 * width + 1;
@@ -134,11 +135,11 @@ public class Maze
     }
     public Cell exitCell
     {
-        get { return end; }
+        get { return algorithmStartPoint; }
         set
         {
-            end = value;
-            map[end.position.x, end.position.y].type = CellType.Visited; // We assign the algorithm starting point as visited.
+            algorithmStartPoint = value;
+            value.type = CellType.Exit; // We assign the algorithm starting point as visited.
         }
     }
     // This ones are only for the gizmo
@@ -267,9 +268,18 @@ public class Maze
         return currentNeighbours;
     }
 
-    private Cell ToRandomNeighbour(List<Cell> currentCellNeighbours)
+    private Cell ToRandomNeighbour(List<Cell> currentCellNeighbours, float corridorDirection)
     {
-        int randomIndex = pseudoRNG.Next(currentCellNeighbours.Count);
+        // Parametrizing the random walk in order to influence the maze form.
+        int randomIndex = 0;
+        if (pseudoRNG.NextDouble() <= corridorDirection)
+        {
+            randomIndex = pseudoRNG.Next(currentCellNeighbours.Count / 2);
+        }
+        else
+        {
+            randomIndex = pseudoRNG.Next(currentCellNeighbours.Count / 2, currentCellNeighbours.Count);
+        }
 
         // Extract the positional information from the next cell.
         Cell nextCell = currentCellNeighbours[randomIndex];
@@ -299,7 +309,7 @@ public class Maze
     // Here is where all the magic happens ;P
     public void BestFirstOrdering()
     {
-        Cell currentCell = end;
+        Cell currentCell = algorithmStartPoint;
         Cell nextCell;
         List<Cell> localNeighbours;
 
@@ -334,7 +344,7 @@ public class Maze
             else
             {
                 // Move to a randomly chosen local neighbour and remove it from the pendingNeighbours list.
-                nextCell = ToRandomNeighbour(localNeighbours);
+                nextCell = ToRandomNeighbour(localNeighbours, corridorDirection);
                 pendingNeighbours.Remove(nextCell);
             }
 
@@ -346,11 +356,9 @@ public class Maze
             //current = NextStep(current);
         } while (pendingNeighbours.Count != 0);
 
-        map[end.position.x, end.position.y].type = CellType.Exit;
+        map[algorithmStartPoint.position.x, algorithmStartPoint.position.y].type = CellType.Exit;
 
     }
-
-    // TODO: Play with the BestFirstAlgorithm and parametrize it. Sitll doing some strange loops. 
 
     // TODO: Right now the entrance is only in the bottom of the maze.
     public void SetRandomEntrance()
@@ -361,7 +369,7 @@ public class Maze
             this.entrance = new Cell(x, 0);
         } while (map[entrance.position.x, 1].type != CellType.Free);
 
-        map[entrance.position.x, entrance.position.y].type = CellType.Free;
+        map[entrance.position.x, entrance.position.y].type = CellType.Exit;
     }
 
     // Spawn chests in the corners of the maze
@@ -373,12 +381,11 @@ public class Maze
     // Get maze map
 }
 
-
-
 public class MapGenerator : MonoBehaviour
 {
     [SerializeField][Range(10, 80)] int cellWidth = 0;
     [SerializeField][Range(10, 80)] int cellHeight = 0;
+    [SerializeField][Range(0, 1)] float corridorDirection = 0;
     [SerializeField] string seed = "lolerpoper";
     [SerializeField] bool useRandomSeed = true;
 
@@ -394,7 +401,7 @@ public class MapGenerator : MonoBehaviour
 
     void GenerateMaze()
     {
-        maze = new Maze(cellWidth, cellHeight, new Cell(15, 15), seed);
+        maze = new Maze(cellWidth, cellHeight, new Cell(1, 1), seed, corridorDirection);
         maze.BestFirstOrdering();
         maze.SetRandomEntrance();
     }
