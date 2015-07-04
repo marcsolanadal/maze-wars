@@ -5,11 +5,11 @@ using System.Collections.Generic;
 
 public enum CellType { Free, Wall, Chest, Visited, Listed, Exit };
 
-// TODO: Select the 3D model depending on the type of cell.
 public class Cell
 {
-    public IntVector2 position;
+    public IntVector2 position; // TODO: We really need the position if we have the general map position???
     private CellType cellType;
+    private int modelNumber;
 
     public Cell(int x, int y)
     {
@@ -51,10 +51,6 @@ public class Maze
 {
     public Cell[,] map;
     private List<Cell> pendingNeighbours;
-    
-    // This width and height is only for the cells.
-    //private int width = 20;
-    //private int height = 20;
 
     // This width and height are counting the walls.
     private int totalWidth;
@@ -62,8 +58,7 @@ public class Maze
     private float corridorDirection;
 
     // Important maze positions
-    private Cell start;
-    private Cell algorithmStartPoint; // TODO: Refactor to be random
+    private Cell algorithmStartPoint;
     private Cell entrance;
 
     // Pseudo RNG
@@ -103,36 +98,34 @@ public class Maze
     //    this.width = width;
     //    this.height = height;
     //}
-    public Maze(int width, int height, Cell algorithmStartPoint, string seed, float corridorDirection)
+    public Maze(int width, int height, string seed, float corridorDirection)
     {
         // Check if start and stop are cells or walls
         // We use the setter because we also apply the value to the map.
-        exitCell = algorithmStartPoint;
-        this.algorithmStartPoint = algorithmStartPoint;
+        //exitCell = SetRandomEntrance();
+        //this.algorithmStartPoint = algorithmStartPoint;
         this.seed = seed;
         this.corridorDirection = corridorDirection;
 
-        // Calculating maze size with walls
+        // Calculating maze size with walls.
         totalWidth = 2 * width + 1;
         totalHeight = 2 * height + 1;
 
-        // Getting random seed
+        // Getting random seed.
         pseudoRNG = new System.Random(seed.GetHashCode());
 
-        // Creating map skeleton
+        // Creating map skeleton.
         map = new Cell[totalWidth, totalHeight];
         GenerateSkeleton();
 
-        // Initialize neighbour list
+        // Initialize neighbour list.
         pendingNeighbours = new List<Cell>();
+
+        // Algorithm starting point used as entrance point.
+        algorithmStartPoint = SetRandomEntrance();
     }
 
     // Getters and setters
-    public Cell startCell
-    {
-        get { return start; }
-        set { start = value; }
-    }
     public Cell exitCell
     {
         get { return algorithmStartPoint; }
@@ -142,6 +135,7 @@ public class Maze
             value.type = CellType.Exit; // We assign the algorithm starting point as visited.
         }
     }
+    
     // This ones are only for the gizmo
     public int totalCellsWidth
     {
@@ -199,11 +193,27 @@ public class Maze
         cell.type = (cell.IsFreeable()) ? CellType.Visited : cell.type;
     }
 
-    //private void MarkNeighbourAsListed(Cell cell)
-    //{
-    //    // We need to check that is a cell and not a wall.
-    //    cell.type = (cell.IsFreeable()) ? CellType.Listed : cell.type;
-    //}
+    private void MarkNeighboursAsListed(List<Cell> neighbours)
+    {
+        neighbours.ForEach(delegate (Cell neighbour)
+        {
+            map[neighbour.position.x, neighbour.position.y].type = CellType.Listed;
+        });
+    }
+
+    private Cell SetRandomEntrance()
+    {
+        do
+        {
+            int x = pseudoRNG.Next(totalCellsHeight);
+            entrance = new Cell(x, 0);
+        } while (map[entrance.position.x, 1].type != CellType.Free);
+
+        map[entrance.position.x, entrance.position.y].type = CellType.Exit;
+
+        return map[entrance.position.x, 1];
+
+    }
 
     private void RemoveWall(Cell fromCell, Cell toCell)
     {
@@ -226,6 +236,23 @@ public class Maze
         {
             map[toCell.position.x, toCell.position.y + 1].type = CellType.Free;
         }
+    }
+
+    // Detect number of walls around a cell
+    private int DetectNumberWalls(Cell cell)
+    {
+        int wallCounter = 0;
+        GetNeightbours(cell, 1).ForEach(delegate (Cell neighbour)
+        {
+            if (neighbour.type == CellType.Wall)
+            {
+                wallCounter += 1;
+            }
+        });
+
+        //Debug.Log("DetectNumberWalls(cell[" + cell.position.x + "," + cell.position.y + "]) = " + wallCounter);
+
+        return wallCounter;
     }
 
     private List<Cell> GetNeightbours(Cell currentCell, int spacing)
@@ -295,14 +322,6 @@ public class Maze
         }
 
         return currentNeighbours;
-    }
-
-    private void MarkNeighboursAsListed(List<Cell> neighbours)
-    {
-        neighbours.ForEach(delegate (Cell neighbour)
-        {
-            map[neighbour.position.x, neighbour.position.y].type = CellType.Listed;
-        });
     }
 
     private Cell ToRandomNeighbour(List<Cell> currentCellNeighbours, float corridorDirection)
@@ -399,35 +418,6 @@ public class Maze
 
     }
 
-    // TODO: We need to sync the entrance with the starting point of the algorithm 
-    public void SetRandomEntrance()
-    {
-        do
-        {
-            int x = pseudoRNG.Next(totalCellsHeight);
-            entrance = new Cell(x, 0);
-        } while (map[entrance.position.x, 1].type != CellType.Free);
-
-        map[entrance.position.x, entrance.position.y].type = CellType.Exit;
-    }
-
-    // Detect number of walls around a cell
-    private int DetectNumberWalls(Cell cell)
-    {
-        int wallCounter = 0;
-        GetNeightbours(cell, 1).ForEach(delegate (Cell neighbour)
-        {
-            if (neighbour.type == CellType.Wall)
-            {
-                wallCounter += 1;
-            }
-        });
-
-        //Debug.Log("DetectNumberWalls(cell[" + cell.position.x + "," + cell.position.y + "]) = " + wallCounter);
-
-        return wallCounter;
-    }
-
     // Spawn chests in the corners of the maze
     public void SpawnChests(float provability)
     {
@@ -449,12 +439,12 @@ public class Maze
     }
 
     // Procedurally create wall combinations
-    // Detect how many wall neighbours we have to be able to correctly assing a 3D model type.
+    // Detect how many wall neighbours we have in the wall cell.
+    // Assing modelNumber depending on the number of walls.
 
-    // Get maze map
 }
 
-public class MapGenerator : MonoBehaviour
+public class Maze_Architect : MonoBehaviour
 {
     [SerializeField][Range(10, 80)] int cellWidth = 0;
     [SerializeField][Range(10, 80)] int cellHeight = 0;
@@ -475,10 +465,11 @@ public class MapGenerator : MonoBehaviour
 
     void GenerateMaze()
     {
-        maze = new Maze(cellWidth, cellHeight, new Cell(1, 1), seed, corridorDirection);
+        maze = new Maze(cellWidth, cellHeight, seed, corridorDirection);
         maze.BestFirstOrdering();
-        maze.SetRandomEntrance();
         maze.SpawnChests(chestSpawnProvability);
+
+        Cell[,] loler = maze.map;
     }
 
     // Helper function for visualization
