@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-public enum CellType { Free, Wall, Visited, Listed, Exit };
+public enum CellType { Free, Wall, Chest, Visited, Listed, Exit };
 
 // TODO: Select the 3D model depending on the type of cell.
 public class Cell
@@ -199,11 +199,11 @@ public class Maze
         cell.type = (cell.IsFreeable()) ? CellType.Visited : cell.type;
     }
 
-    private void MarkNeighbourAsListed(Cell cell)
-    {
-        // We need to check that is a cell and not a wall.
-        cell.type = (cell.IsFreeable()) ? CellType.Listed : cell.type;
-    }
+    //private void MarkNeighbourAsListed(Cell cell)
+    //{
+    //    // We need to check that is a cell and not a wall.
+    //    cell.type = (cell.IsFreeable()) ? CellType.Listed : cell.type;
+    //}
 
     private void RemoveWall(Cell fromCell, Cell toCell)
     {
@@ -228,6 +228,35 @@ public class Maze
         }
     }
 
+    private List<Cell> GetNeightbours(Cell currentCell, int spacing)
+    {
+        List<Cell> currentNeighbours = new List<Cell>();
+
+        // Getting neighbours in the X axis.
+        for (int i = currentCell.position.x - spacing; i <= currentCell.position.x + spacing; i += spacing)
+        {
+            if (InsideMap(new IntVector2(i, currentCell.position.y)))
+            {
+                Cell neighbour = map[i, currentCell.position.y];
+                if (InsideMap(neighbour.position))
+                    currentNeighbours.Add(neighbour);
+            }
+        }
+
+        // Getting neighbours in the Y axis.
+        for (int n = currentCell.position.y - spacing; n <= currentCell.position.y + spacing; n += spacing)
+        {
+            if (InsideMap(new IntVector2(currentCell.position.x, n)))
+            {
+                Cell neighbour = map[currentCell.position.x, n];
+                if (InsideMap(neighbour.position))
+                    currentNeighbours.Add(neighbour);
+            }
+        }
+
+        return currentNeighbours;
+    }
+
     private List<Cell> GetCellNeightbours(Cell currentCell)
     {
         List<Cell> currentNeighbours = new List<Cell>();
@@ -245,7 +274,7 @@ public class Maze
                 if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited())
                 {
                     currentNeighbours.Add(neighbour);
-                    map[i, currentCell.position.y].type = CellType.Listed;
+                    //map[i, currentCell.position.y].type = CellType.Listed;
                 }
             } 
         }
@@ -260,12 +289,20 @@ public class Maze
                 if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited())
                 {
                     currentNeighbours.Add(neighbour);
-                    map[currentCell.position.x, n].type = CellType.Listed;
+                    //map[currentCell.position.x, n].type = CellType.Listed;
                 }
             }
         }
 
         return currentNeighbours;
+    }
+
+    private void MarkNeighboursAsListed(List<Cell> neighbours)
+    {
+        neighbours.ForEach(delegate (Cell neighbour)
+        {
+            map[neighbour.position.x, neighbour.position.y].type = CellType.Listed;
+        });
     }
 
     private Cell ToRandomNeighbour(List<Cell> currentCellNeighbours, float corridorDirection)
@@ -317,6 +354,7 @@ public class Maze
         {
             // Take the next local neighbours.
             localNeighbours = GetCellNeightbours(currentCell);
+            MarkNeighboursAsListed(localNeighbours);
 
             // If no local neighbours
             if (localNeighbours.Count == 0)
@@ -330,6 +368,7 @@ public class Maze
 
                 // Get the neighbours of next cell.
                 localNeighbours = GetCellNeightbours(nextCell);
+                MarkNeighboursAsListed(localNeighbours);
 
                 // Choose one with the CellType.Visited as the currentCell.
                 localNeighbours.ForEach(delegate (Cell neighbour)
@@ -356,27 +395,61 @@ public class Maze
             //current = NextStep(current);
         } while (pendingNeighbours.Count != 0);
 
-        map[algorithmStartPoint.position.x, algorithmStartPoint.position.y].type = CellType.Exit;
+        //map[algorithmStartPoint.position.x, algorithmStartPoint.position.y].type = CellType.Exit;
 
     }
 
-    // TODO: Right now the entrance is only in the bottom of the maze.
+    // TODO: We need to sync the entrance with the starting point of the algorithm 
     public void SetRandomEntrance()
     {
         do
         {
             int x = pseudoRNG.Next(totalCellsHeight);
-            this.entrance = new Cell(x, 0);
+            entrance = new Cell(x, 0);
         } while (map[entrance.position.x, 1].type != CellType.Free);
 
         map[entrance.position.x, entrance.position.y].type = CellType.Exit;
     }
 
+    // Detect number of walls around a cell
+    private int DetectNumberWalls(Cell cell)
+    {
+        int wallCounter = 0;
+        GetNeightbours(cell, 1).ForEach(delegate (Cell neighbour)
+        {
+            if (neighbour.type == CellType.Wall)
+            {
+                wallCounter += 1;
+            }
+        });
+
+        //Debug.Log("DetectNumberWalls(cell[" + cell.position.x + "," + cell.position.y + "]) = " + wallCounter);
+
+        return wallCounter;
+    }
+
     // Spawn chests in the corners of the maze
-        // Detect corners
+    public void SpawnChests(float provability)
+    {
+        Debug.Log("spawning chests...");
+
+        for (int x = 0; x < totalWidth; x++)
+        {
+            for (int y = 0; y < totalHeight; y++)
+            {
+                if (map[x, y].type == CellType.Visited && DetectNumberWalls(map[x, y]) >= 3)
+                {
+                    if (pseudoRNG.NextDouble() <= provability)
+                    {
+                        map[x, y].type = CellType.Chest;
+                    }
+                }
+            }
+        }
+    }
 
     // Procedurally create wall combinations
-        // Detect how many wall neighbours we have to be able to correctly assing a 3D model type.
+    // Detect how many wall neighbours we have to be able to correctly assing a 3D model type.
 
     // Get maze map
 }
@@ -385,7 +458,8 @@ public class MapGenerator : MonoBehaviour
 {
     [SerializeField][Range(10, 80)] int cellWidth = 0;
     [SerializeField][Range(10, 80)] int cellHeight = 0;
-    [SerializeField][Range(0, 1)] float corridorDirection = 0;
+    [SerializeField][Range(0, 1)] float corridorDirection = 0.5f;
+    [SerializeField][Range(0, 1)] float chestSpawnProvability = 0.5f;
     [SerializeField] string seed = "lolerpoper";
     [SerializeField] bool useRandomSeed = true;
 
@@ -404,6 +478,7 @@ public class MapGenerator : MonoBehaviour
         maze = new Maze(cellWidth, cellHeight, new Cell(1, 1), seed, corridorDirection);
         maze.BestFirstOrdering();
         maze.SetRandomEntrance();
+        maze.SpawnChests(chestSpawnProvability);
     }
 
     // Helper function for visualization
@@ -421,11 +496,14 @@ public class MapGenerator : MonoBehaviour
                     case CellType.Wall:
                         Gizmos.color = Color.black;
                         break;
+                    case CellType.Chest:
+                        Gizmos.color = Color.green;
+                        break;
                     case CellType.Visited:
                         Gizmos.color = Color.white;
                         break;
                     case CellType.Listed:
-                        Gizmos.color = Color.green;
+                        Gizmos.color = Color.yellow;
                         break;
                     case CellType.Exit:
                         Gizmos.color = Color.red;
