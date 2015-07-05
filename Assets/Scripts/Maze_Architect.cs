@@ -71,8 +71,8 @@ public class Maze
     private float corridorDirection;
 
     // Important maze positions
-    private Cell algorithmStartPoint;
     private Cell entrance;
+    private Cell exit;
 
     // Pseudo RNG
     private string seed;
@@ -113,10 +113,6 @@ public class Maze
     //}
     public Maze(int width, int height, string seed, float corridorDirection)
     {
-        // Check if start and stop are cells or walls
-        // We use the setter because we also apply the value to the map.
-        //exitCell = SetRandomEntrance();
-        //this.algorithmStartPoint = algorithmStartPoint;
         this.seed = seed;
         this.corridorDirection = corridorDirection;
 
@@ -135,20 +131,10 @@ public class Maze
         pendingNeighbours = new List<Cell>();
 
         // Algorithm starting point used as entrance point.
-        algorithmStartPoint = SetRandomEntrance();
+        SetRandomEntrance();
+        SetRandomExit();
     }
 
-    // Getters and setters
-    public Cell exitCell
-    {
-        get { return algorithmStartPoint; }
-        set
-        {
-            algorithmStartPoint = value;
-            value.type = CellType.Exit; // We assign the algorithm starting point as visited.
-        }
-    }
-    
     // This ones are only for the gizmo
     public int totalCellsWidth
     {
@@ -214,18 +200,34 @@ public class Maze
         });
     }
 
-    private Cell SetRandomEntrance()
+    private void SetRandomEntrance()
     {
         do
         {
-            int x = pseudoRNG.Next(totalCellsHeight);
+            int x = pseudoRNG.Next(totalCellsWidth);
             entrance = new Cell(x, 0);
         } while (map[entrance.position.x, 1].type != CellType.Free);
 
+        // Set the entrance point into the map.
         map[entrance.position.x, entrance.position.y].type = CellType.Exit;
 
-        return map[entrance.position.x, 1];
+        // Displace the entranance one cell up for the algorithm.
+        entrance = map[entrance.position.x, 1];
+    }
 
+    private void SetRandomExit()
+    {
+        do
+        {
+            int x = pseudoRNG.Next(totalCellsWidth - 1);
+            exit = new Cell(x, totalCellsHeight - 1);
+        } while (map[exit.position.x, totalCellsHeight - 2].type != CellType.Free);
+
+        // Current exit point as exit into the map.
+        map[exit.position.x, exit.position.y].type = CellType.Exit;
+
+        // Exit point into the upper outter wall.
+        exit = map[exit.position.x, totalCellsHeight - 1];
     }
 
     private void RemoveWall(Cell fromCell, Cell toCell)
@@ -251,7 +253,6 @@ public class Maze
         }
     }
 
-    // Detect number of walls around a cell
     private int DetectNumberWalls(Cell cell)
     {
         int wallCounter = 0;
@@ -403,7 +404,7 @@ public class Maze
     // Here is where all the magic happens ;P
     public void BestFirstOrdering()
     {
-        Cell currentCell = algorithmStartPoint;
+        Cell currentCell = entrance;
         Cell nextCell;
         List<Cell> localNeighbours;
 
@@ -452,14 +453,11 @@ public class Maze
 
             currentCell = nextCell;
 
-            //current = NextStep(current);
         } while (pendingNeighbours.Count != 0);
-
-        //map[algorithmStartPoint.position.x, algorithmStartPoint.position.y].type = CellType.Exit;
 
     }
 
-    // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
+    // TODO: Operations like spawning chest or assigning wall types in the same loop.
     public void SpawnChests(float provability)
     {
         Debug.Log("spawning chests...");
@@ -478,7 +476,7 @@ public class Maze
         }
     }
 
-    // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
+    // TODO: Operations like spawning chest or assigning wall types in the same loop.
     public void AssignWallTypes()
     {
         Debug.Log("assigning wall types...");
@@ -576,7 +574,7 @@ public class Maze_Architect : MonoBehaviour
                         switch (maze.map[x, y].wall)
                         {
                             case WallType.Isolate:
-                                Gizmos.color = Color.black;
+                                Gizmos.color = new Color(0.73f, 0.67f, 0.26f);
                                 break;
                             case WallType.Corner:
                                 switch (maze.map[x, y].corner)
@@ -609,15 +607,12 @@ public class Maze_Architect : MonoBehaviour
                                 break;
                             case WallType.Joint:
                                 Gizmos.color = new Color(0, 1, 0, 0.9f);
-                                //Gizmos.color = Color.magenta;
                                 break;
                             case WallType.Unvisible:
                                 Gizmos.color = new Color(0, 1, 1, 0.9f);
-                                //Gizmos.color = Color.red;
                                 break;
                             case WallType.outter:
                                 Gizmos.color = new Color(0.84f, 0.63f, 0.38f);
-                                //Gizmos.color = Color.red;
                                 break;
                             case WallType.None:
                                 Gizmos.color = Color.gray;
@@ -637,62 +632,6 @@ public class Maze_Architect : MonoBehaviour
                         Gizmos.color = Color.gray;
                         break;
                 }
-
-                //switch (maze.map[x, y].wall)
-                //{
-                //    case WallType.Isolate:
-                //        Gizmos.color = Color.yellow;
-                //        break;
-                //    case WallType.Corner:
-                //        switch (maze.map[x, y].corner)
-                //        {
-                //            case CornerType.None:
-                //                Gizmos.color = new Color(0, 1, 0, 0.2f);
-                //                //Gizmos.color = Color.black;
-                //                break;
-                //            case CornerType.DownLeft:
-                //                Gizmos.color = new Color(0, 50f, 0, 0.5f);
-                //                //Gizmos.color = Color.cyan;
-                //                break;
-                //            case CornerType.DownRight:
-                //                Gizmos.color = new Color(0, 100f, 0, 0.5f);
-                //                //Gizmos.color = Color.magenta;
-                //                break;
-                //            case CornerType.UpLeft:
-                //                Gizmos.color = new Color(0, 1, 0, 0.5f);
-                //                //Gizmos.color = Color.green;
-                //                break;
-                //            case CornerType.UpRight:
-                //                Gizmos.color = new Color(0, 1, 0, 0.4f);
-                //                //Gizmos.color = Color.yellow;
-                //                break;
-                //            case CornerType.End:
-                //                Gizmos.color = new Color(0, 1, 0.5f, 0.7f);
-                //                //Gizmos.color = Color.blue;
-                //                break;
-                //            default:
-                //                Gizmos.color = new Color(0, 1, 0, 0.5f);
-                //                //Gizmos.color = Color.black;
-                //                break;
-                //        }
-                //        break;
-                //    case WallType.Normal:
-                //        //Gizmos.color = Color.black;
-                //        Gizmos.color = new Color(0, 1, 0, 0.5f);
-                //        break;
-                //    case WallType.Joint:
-                //        Gizmos.color = Color.magenta;
-                //        break;
-                //    case WallType.Unvisible:
-                //        Gizmos.color = Color.red;
-                //        break;
-                //    case WallType.outter:
-                //        Gizmos.color = Color.red;
-                //        break;
-                //    case WallType.None:
-                //        Gizmos.color = Color.gray;
-                //        break;
-                //}
 
                 Vector3 pos = new Vector3(-maze.totalCellsWidth / 2 + x + .5f, 0, -maze.totalCellsHeight / 2 + y + .5f);
                 Gizmos.DrawCube(pos, Vector3.one);
