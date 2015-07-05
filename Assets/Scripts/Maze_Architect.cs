@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 
 public enum CellType { Free, Wall, Chest, Visited, Listed, Exit };
-public enum WallType { None, Isolate, Corner, Normal, Joint, Unvisible }; 
+public enum WallType { None, Isolate, Corner, Normal, Joint, Unvisible, outter }; 
 public enum CornerType { None, End, UpLeft, UpRight, DownLeft, DownRight };
 
 public class Cell
@@ -359,6 +359,47 @@ public class Maze
         return nextCell;
     }
 
+    private CornerType DetectCornerType(Cell cell)
+    {
+        // Get all the current neighbours of the current cell.
+        List<Cell> neighbours = GetNeightbours(cell, 1);
+
+        // Get only the wall neighbours.
+        List<Cell> wallNeighbours = new List<Cell>();
+        neighbours.ForEach(delegate (Cell neighbour)
+        {
+            if (neighbour.type == CellType.Wall)
+            {
+                wallNeighbours.Add(neighbour);
+            }
+        });
+
+        // Detecting the order of the positions of the wall neighbours.
+        if (wallNeighbours.Count == 1)
+        {
+            return CornerType.End;
+        }
+        else
+        {
+            if (wallNeighbours[0].position.y == wallNeighbours[1].position.y ||
+                wallNeighbours[0].position.x == wallNeighbours[1].position.x)
+            {
+                return CornerType.None;
+            }
+            else
+            {
+                if (wallNeighbours[0].position.y > wallNeighbours[1].position.y)
+                {
+                    return (wallNeighbours[0].position.x > wallNeighbours[1].position.x) ? CornerType.UpLeft : CornerType.UpRight;
+                }
+                else
+                {
+                    return (wallNeighbours[0].position.x > wallNeighbours[1].position.x) ? CornerType.DownLeft : CornerType.DownRight;
+                }
+            }
+        }
+    }
+
     // Here is where all the magic happens ;P
     public void BestFirstOrdering()
     {
@@ -386,7 +427,7 @@ public class Maze
                 map[nextCell.position.x, nextCell.position.y].type = CellType.Visited;
 
                 // Get the neighbours of next cell.
-                localNeighbours = GetCellNeightbours(nextCell);
+                localNeighbours = GetNeightbours(nextCell, 2);
                 MarkNeighboursAsListed(localNeighbours);
 
                 // Choose one with the CellType.Visited as the currentCell.
@@ -418,7 +459,6 @@ public class Maze
 
     }
 
-    // Spawn chests in the corners of the maze
     // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
     public void SpawnChests(float provability)
     {
@@ -438,11 +478,6 @@ public class Maze
         }
     }
 
-    // TODO
-    // Procedurally create wall combinations
-    // Detect how many wall neighbours we have in the wall cell.
-    // Assing WallType depending on the number of walls for each cell.
-
     // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
     public void AssignWallTypes()
     {
@@ -451,8 +486,13 @@ public class Maze
         {
             for (int y = 0; y < totalHeight; y++)
             {
-                //if (map[x, y].type == CellType.Wall)
-                //{
+                // Checking if it is an outter wall.
+                if (x == 0 || y == 0 || x == totalWidth - 1 || y == totalHeight - 1)
+                {
+                    map[x, y].wall = WallType.outter;
+                }
+                else
+                {
                     switch (DetectNumberWalls(map[x, y]))
                     {
                         case 0:
@@ -460,9 +500,20 @@ public class Maze
                             break;
                         case 1:
                             map[x, y].wall = WallType.Corner;
+                            map[x, y].corner = CornerType.End;
                             break;
                         case 2:
-                            map[x, y].wall = WallType.Normal;
+                            CornerType ct = DetectCornerType(map[x, y]);
+                            if (ct != CornerType.None)
+                            {
+                                map[x, y].wall = WallType.Corner;
+                                map[x, y].corner = ct;
+                            }
+                            else
+                            {
+                                map[x, y].wall = WallType.Normal;
+                                map[x, y].corner = CornerType.None;
+                            }
                             break;
                         case 3:
                             map[x, y].wall = WallType.Joint;
@@ -474,11 +525,12 @@ public class Maze
                             map[x, y].wall = WallType.None;
                             break;
                     }
-                    Debug.Log("[" + x + "," + y + "] = " + map[x,y].wall);
-                //}
+                    Debug.Log("[" + x + "," + y + "] = " + map[x,y].corner);
+                }
             }
         }
     }
+
 }
 
 public class Maze_Architect : MonoBehaviour
@@ -518,22 +570,71 @@ public class Maze_Architect : MonoBehaviour
                 switch (maze.map[x, y].type)
                 {
                     case CellType.Free:
-                        Gizmos.color = Color.white;
+                        Gizmos.color = Color.gray;
                         break;
                     case CellType.Wall:
-                        Gizmos.color = Color.black;
+                        switch (maze.map[x, y].wall)
+                        {
+                            case WallType.Isolate:
+                                Gizmos.color = Color.black;
+                                break;
+                            case WallType.Corner:
+                                switch (maze.map[x, y].corner)
+                                {
+                                    case CornerType.None:
+                                        Gizmos.color = new Color(0, 1, 0, 0.2f);
+                                        break;
+                                    case CornerType.DownLeft:
+                                        Gizmos.color = new Color(0, 50f, 0, 0.5f);
+                                        break;
+                                    case CornerType.DownRight:
+                                        Gizmos.color = new Color(0, 100f, 0, 0.5f);
+                                        break;
+                                    case CornerType.UpLeft:
+                                        Gizmos.color = new Color(0, 1, 0, 0.5f);
+                                        break;
+                                    case CornerType.UpRight:
+                                        Gizmos.color = new Color(0, 1, 0, 0.4f);
+                                        break;
+                                    case CornerType.End:
+                                        Gizmos.color = new Color(0, 1, 0.5f, 0.7f);
+                                        break;
+                                    default:
+                                        Gizmos.color = new Color(0, 1, 0, 0.5f);
+                                        break;
+                                }
+                                break;
+                            case WallType.Normal:
+                                Gizmos.color = new Color(0, 1, 0, 0.5f);
+                                break;
+                            case WallType.Joint:
+                                Gizmos.color = new Color(0, 1, 0, 0.9f);
+                                //Gizmos.color = Color.magenta;
+                                break;
+                            case WallType.Unvisible:
+                                Gizmos.color = new Color(0, 1, 1, 0.9f);
+                                //Gizmos.color = Color.red;
+                                break;
+                            case WallType.outter:
+                                Gizmos.color = new Color(0.84f, 0.63f, 0.38f);
+                                //Gizmos.color = Color.red;
+                                break;
+                            case WallType.None:
+                                Gizmos.color = Color.gray;
+                                break;
+                        }
                         break;
                     case CellType.Chest:
-                        Gizmos.color = Color.green;
-                        break;
-                    case CellType.Visited:
-                        Gizmos.color = Color.white;
-                        break;
-                    case CellType.Listed:
                         Gizmos.color = Color.yellow;
                         break;
+                    case CellType.Visited:
+                        Gizmos.color = Color.gray;
+                        break;
+                    case CellType.Listed:
+                        Gizmos.color = Color.gray;
+                        break;
                     case CellType.Exit:
-                        Gizmos.color = Color.red;
+                        Gizmos.color = Color.gray;
                         break;
                 }
 
@@ -543,15 +644,49 @@ public class Maze_Architect : MonoBehaviour
                 //        Gizmos.color = Color.yellow;
                 //        break;
                 //    case WallType.Corner:
-                //        Gizmos.color = Color.cyan;
+                //        switch (maze.map[x, y].corner)
+                //        {
+                //            case CornerType.None:
+                //                Gizmos.color = new Color(0, 1, 0, 0.2f);
+                //                //Gizmos.color = Color.black;
+                //                break;
+                //            case CornerType.DownLeft:
+                //                Gizmos.color = new Color(0, 50f, 0, 0.5f);
+                //                //Gizmos.color = Color.cyan;
+                //                break;
+                //            case CornerType.DownRight:
+                //                Gizmos.color = new Color(0, 100f, 0, 0.5f);
+                //                //Gizmos.color = Color.magenta;
+                //                break;
+                //            case CornerType.UpLeft:
+                //                Gizmos.color = new Color(0, 1, 0, 0.5f);
+                //                //Gizmos.color = Color.green;
+                //                break;
+                //            case CornerType.UpRight:
+                //                Gizmos.color = new Color(0, 1, 0, 0.4f);
+                //                //Gizmos.color = Color.yellow;
+                //                break;
+                //            case CornerType.End:
+                //                Gizmos.color = new Color(0, 1, 0.5f, 0.7f);
+                //                //Gizmos.color = Color.blue;
+                //                break;
+                //            default:
+                //                Gizmos.color = new Color(0, 1, 0, 0.5f);
+                //                //Gizmos.color = Color.black;
+                //                break;
+                //        }
                 //        break;
                 //    case WallType.Normal:
-                //        Gizmos.color = Color.black;
+                //        //Gizmos.color = Color.black;
+                //        Gizmos.color = new Color(0, 1, 0, 0.5f);
                 //        break;
                 //    case WallType.Joint:
                 //        Gizmos.color = Color.magenta;
                 //        break;
                 //    case WallType.Unvisible:
+                //        Gizmos.color = Color.red;
+                //        break;
+                //    case WallType.outter:
                 //        Gizmos.color = Color.red;
                 //        break;
                 //    case WallType.None:
