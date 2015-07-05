@@ -1,15 +1,18 @@
 ﻿using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 public enum CellType { Free, Wall, Chest, Visited, Listed, Exit };
+public enum WallType { None, Isolate, Corner, Normal, Joint, Unvisible }; 
+public enum CornerType { None, End, UpLeft, UpRight, DownLeft, DownRight };
 
 public class Cell
 {
-    public IntVector2 position; // TODO: We really need the position if we have the general map position???
+    public IntVector2 position;
+
     private CellType cellType;
-    private int modelNumber;
+    private WallType wallType;
+    private CornerType cornerType;
 
     public Cell(int x, int y)
     {
@@ -31,8 +34,18 @@ public class Cell
 
     public CellType type
     {
-        get { return this.cellType; }
-        set { this.cellType = value; }
+        get { return cellType; }
+        set { cellType = value; }
+    }
+    public WallType wall
+    {
+        get { return (cellType == CellType.Wall) ? wallType : WallType.None; }
+        set { wallType = value; }
+    }
+    public CornerType corner
+    {
+        get { return (wallType == WallType.Corner) ? cornerType : CornerType.None; }
+        set { cornerType = value; }
     }
 
     public bool IsFreeable()
@@ -262,11 +275,24 @@ public class Maze
         // Getting neighbours in the X axis.
         for (int i = currentCell.position.x - spacing; i <= currentCell.position.x + spacing; i += spacing)
         {
+            // First we need to check if the position of the possible cell will be in map bounds.
             if (InsideMap(new IntVector2(i, currentCell.position.y)))
             {
                 Cell neighbour = map[i, currentCell.position.y];
-                if (InsideMap(neighbour.position))
-                    currentNeighbours.Add(neighbour);
+                // Discarting the currentCell as neighbour.
+                if (currentCell.position.x != neighbour.position.x)
+                {
+                    // Looking for seed cells?
+                    if (spacing == 2)
+                    {
+                        if (neighbour.IsFreeable() && !neighbour.Visited())
+                            currentNeighbours.Add(neighbour);
+                    }
+                    else
+                    {
+                        currentNeighbours.Add(neighbour);
+                    }
+                }
             }
         }
 
@@ -276,47 +302,18 @@ public class Maze
             if (InsideMap(new IntVector2(currentCell.position.x, n)))
             {
                 Cell neighbour = map[currentCell.position.x, n];
-                if (InsideMap(neighbour.position))
-                    currentNeighbours.Add(neighbour);
-            }
-        }
-
-        return currentNeighbours;
-    }
-
-    private List<Cell> GetCellNeightbours(Cell currentCell)
-    {
-        List<Cell> currentNeighbours = new List<Cell>();
-
-        // We mark the current cell as visited.
-        currentCell.type = CellType.Visited;
-
-        // Getting neighbours in the X axis.
-        for (int i = currentCell.position.x - 2; i <= currentCell.position.x + 2; i += 2)
-        {
-            if (InsideMap(new IntVector2(i, currentCell.position.y)))
-            {
-                Cell neighbour = map[i, currentCell.position.y];
-                //if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited() && !ListedNeighbour(neighbour))
-                if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited())
+                if (currentCell.position.y != neighbour.position.y)
                 {
-                    currentNeighbours.Add(neighbour);
-                    //map[i, currentCell.position.y].type = CellType.Listed;
-                }
-            } 
-        }
-
-        // Getting neighbours in the Y axis.
-        for (int n = currentCell.position.y - 2; n <= currentCell.position.y + 2; n += 2)
-        {
-            if (InsideMap(new IntVector2(currentCell.position.x, n)))
-            {
-                Cell neighbour = map[currentCell.position.x, n];
-                //if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited() && !ListedNeighbour(neighbour))
-                if (InsideMap(neighbour.position) && neighbour.IsFreeable() && !neighbour.Visited())
-                {
-                    currentNeighbours.Add(neighbour);
-                    //map[currentCell.position.x, n].type = CellType.Listed;
+                    // Looking for seed cells?
+                    if (spacing == 2)
+                    {
+                        if (neighbour.IsFreeable() && !neighbour.Visited())
+                            currentNeighbours.Add(neighbour);
+                    }
+                    else
+                    {
+                        currentNeighbours.Add(neighbour);
+                    }
                 }
             }
         }
@@ -371,8 +368,11 @@ public class Maze
 
         do
         {
-            // Take the next local neighbours.
-            localNeighbours = GetCellNeightbours(currentCell);
+            // We mark the current cell as visited.
+            currentCell.type = CellType.Visited;
+
+            // Take the next free cell neighbours. At first they're all spaced with one wall in between.
+            localNeighbours = GetNeightbours(currentCell, 2);
             MarkNeighboursAsListed(localNeighbours);
 
             // If no local neighbours
@@ -419,10 +419,10 @@ public class Maze
     }
 
     // Spawn chests in the corners of the maze
+    // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
     public void SpawnChests(float provability)
     {
         Debug.Log("spawning chests...");
-
         for (int x = 0; x < totalWidth; x++)
         {
             for (int y = 0; y < totalHeight; y++)
@@ -433,21 +433,58 @@ public class Maze
                     {
                         map[x, y].type = CellType.Chest;
                     }
-                }
+                }    
             }
         }
     }
 
+    // TODO
     // Procedurally create wall combinations
     // Detect how many wall neighbours we have in the wall cell.
-    // Assing modelNumber depending on the number of walls.
+    // Assing WallType depending on the number of walls for each cell.
 
+    // TODO: We can do all the operations like spawning chest or assigning wall types in the same loop.
+    public void AssignWallTypes()
+    {
+        Debug.Log("assigning wall types...");
+        for (int x = 0; x < totalWidth; x++)
+        {
+            for (int y = 0; y < totalHeight; y++)
+            {
+                //if (map[x, y].type == CellType.Wall)
+                //{
+                    switch (DetectNumberWalls(map[x, y]))
+                    {
+                        case 0:
+                            map[x, y].wall = WallType.Isolate;
+                            break;
+                        case 1:
+                            map[x, y].wall = WallType.Corner;
+                            break;
+                        case 2:
+                            map[x, y].wall = WallType.Normal;
+                            break;
+                        case 3:
+                            map[x, y].wall = WallType.Joint;
+                            break;
+                        case 4:
+                            map[x, y].wall = WallType.Unvisible;
+                            break;
+                        default:
+                            map[x, y].wall = WallType.None;
+                            break;
+                    }
+                    Debug.Log("[" + x + "," + y + "] = " + map[x,y].wall);
+                //}
+            }
+        }
+    }
 }
 
 public class Maze_Architect : MonoBehaviour
 {
-    [SerializeField][Range(10, 80)] int cellWidth = 0;
-    [SerializeField][Range(10, 80)] int cellHeight = 0;
+    [SerializeField][Range(4, 80)] int cellWidth = 0;
+    [SerializeField][Range(4, 80)] int cellHeight = 0;
     [SerializeField][Range(0, 1)] float corridorDirection = 0.5f;
     [SerializeField][Range(0, 1)] float chestSpawnProvability = 0.5f;
     [SerializeField] string seed = "lolerpoper";
@@ -468,8 +505,7 @@ public class Maze_Architect : MonoBehaviour
         maze = new Maze(cellWidth, cellHeight, seed, corridorDirection);
         maze.BestFirstOrdering();
         maze.SpawnChests(chestSpawnProvability);
-
-        Cell[,] loler = maze.map;
+        maze.AssignWallTypes();
     }
 
     // Helper function for visualization
@@ -500,6 +536,29 @@ public class Maze_Architect : MonoBehaviour
                         Gizmos.color = Color.red;
                         break;
                 }
+
+                //switch (maze.map[x, y].wall)
+                //{
+                //    case WallType.Isolate:
+                //        Gizmos.color = Color.yellow;
+                //        break;
+                //    case WallType.Corner:
+                //        Gizmos.color = Color.cyan;
+                //        break;
+                //    case WallType.Normal:
+                //        Gizmos.color = Color.black;
+                //        break;
+                //    case WallType.Joint:
+                //        Gizmos.color = Color.magenta;
+                //        break;
+                //    case WallType.Unvisible:
+                //        Gizmos.color = Color.red;
+                //        break;
+                //    case WallType.None:
+                //        Gizmos.color = Color.gray;
+                //        break;
+                //}
+
                 Vector3 pos = new Vector3(-maze.totalCellsWidth / 2 + x + .5f, 0, -maze.totalCellsHeight / 2 + y + .5f);
                 Gizmos.DrawCube(pos, Vector3.one);
             }
