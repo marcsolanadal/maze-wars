@@ -5,7 +5,9 @@
 # ==================== #
 # Art and 3d resources #
 # ==================== #
-[Rr]esources/
+#[Rr]esources/*
+*.blend
+*.blend.meta
 
 # =============== #
 # Unity generated #

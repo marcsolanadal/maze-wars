@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 
 public enum CellType { Free, Wall, Chest, Visited, Listed, Exit };
-public enum WallType { None, Isolate, Corner, Normal, Joint, Unvisible, outter }; 
+public enum WallType { None, Isolate, Corner, Normal, Joint, invisible, outter }; 
 public enum CornerType { None, End, UpLeft, UpRight, DownLeft, DownRight };
 
 public class Cell
@@ -188,7 +188,6 @@ public class Maze
 
     private void MarkCellAsVisited(Cell cell)
     {
-        // We need to check that is a cell and not a wall.
         cell.type = (cell.IsFreeable()) ? CellType.Visited : cell.type;
     }
 
@@ -263,8 +262,6 @@ public class Maze
                 wallCounter += 1;
             }
         });
-
-        //Debug.Log("DetectNumberWalls(cell[" + cell.position.x + "," + cell.position.y + "]) = " + wallCounter);
 
         return wallCounter;
     }
@@ -517,13 +514,12 @@ public class Maze
                             map[x, y].wall = WallType.Joint;
                             break;
                         case 4:
-                            map[x, y].wall = WallType.Unvisible;
+                            map[x, y].wall = WallType.invisible;
                             break;
                         default:
                             map[x, y].wall = WallType.None;
                             break;
                     }
-                    Debug.Log("[" + x + "," + y + "] = " + map[x,y].corner);
                 }
             }
         }
@@ -531,8 +527,247 @@ public class Maze
 
 }
 
+public class ZoneMeshes
+{
+    private string zoneDirectoryPath = "./Assets/Resources/Zones/";
+    private System.Random pseudoRNG;
+
+    // Mesh lists for ground and chests.
+    List<Mesh> groundList = new List<Mesh>();
+    List<Mesh> chestList = new List<Mesh>();
+
+    // Mesh lists for different wall types.
+    List<Mesh> isolateWallList = new List<Mesh>();
+    List<Mesh> normalWallList = new List<Mesh>();
+    List<Mesh> jointWallList = new List<Mesh>();
+    List<Mesh> invisibleWallList = new List<Mesh>();
+    List<Mesh> outterWallList = new List<Mesh>();
+
+    // Mesh lists for correnr types.
+    List<Mesh> normalCornerList = new List<Mesh>();
+    List<Mesh> endCornerList = new List<Mesh>();
+
+    // Used to convert to List<Mesh>.
+    Mesh[] meshList;
+
+    // Load all the Mesh objects into the corresponding lists. 
+    public ZoneMeshes(string zoneType, string seed)
+    {
+        // Getting random seed.
+        pseudoRNG = new System.Random(seed.GetHashCode());
+
+        // Throw exception if the zone doesn't exist.
+
+        string localPath = "Zones/" + zoneType + "/Maze/";
+
+        // Loading all ground meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Ground");
+        foreach (Mesh mesh in meshList)
+        {
+            groundList.Add(mesh);
+        }
+
+        // Loading all chest meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Chests");
+        foreach (Mesh mesh in meshList)
+        {
+            chestList.Add(mesh);
+        }
+
+        // Loading all isolated/column wall meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Isolate");
+        foreach (Mesh mesh in meshList)
+        {
+            isolateWallList.Add(mesh);
+        }
+
+        // Loading all normal wall meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Normal");
+        foreach (Mesh mesh in meshList)
+        {
+            normalWallList.Add(mesh);
+        }
+
+        // Loading all joint wall meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Joint");
+        foreach (Mesh mesh in meshList)
+        {
+            jointWallList.Add(mesh);
+        }
+
+        // Loading all invisible wall meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/invisible");
+        foreach (Mesh mesh in meshList)
+        {
+            invisibleWallList.Add(mesh);
+        }
+
+        // Loading all outter wall meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Outter");
+        foreach (Mesh mesh in meshList)
+        {
+            outterWallList.Add(mesh);
+        }
+
+        // Loading all normal corners meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Corner/Normal");
+        foreach (Mesh mesh in meshList)
+        {
+            normalCornerList.Add(mesh);
+        }
+
+        // Loading all end corners meshes.
+        meshList = Resources.LoadAll<Mesh>(localPath + "Walls/Corner/End");
+        foreach (Mesh mesh in meshList)
+        {
+            endCornerList.Add(mesh);
+        }
+
+    }
+
+    // Getters for all the types of meshes. Returning random mesh or null in case 
+    public Mesh ground
+    {
+        get
+        {
+            if (groundList.Count != 0)
+            {
+                int index = pseudoRNG.Next(groundList.Count - 1);
+                return groundList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh chest
+    {
+        get
+        {
+            if (chestList.Count != 0)
+            {
+                int index = pseudoRNG.Next(chestList.Count - 1);
+                return chestList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh isolateWall
+    {
+        get
+        {
+            if (isolateWallList.Count != 0)
+            {
+                int index = pseudoRNG.Next(isolateWallList.Count - 1);
+                return isolateWallList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh normalWall
+    {
+        get
+        {
+            if (normalWallList.Count != 0)
+            {
+                int index = pseudoRNG.Next(normalWallList.Count - 1);
+                return normalWallList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh jointWall
+    {
+        get
+        {
+            if (jointWallList.Count != 0)
+            {
+                int index = pseudoRNG.Next(jointWallList.Count - 1);
+                return jointWallList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh invisibleWall
+    {
+        get
+        {
+            if (invisibleWallList.Count != 0)
+            {
+                int index = pseudoRNG.Next(invisibleWallList.Count - 1);
+                return invisibleWallList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh outterWall
+    {
+        get
+        {
+            if (outterWallList.Count != 0)
+            {
+                int index = pseudoRNG.Next(outterWallList.Count - 1);
+                return outterWallList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh normalCorner
+    {
+        get
+        {
+            if (normalCornerList.Count != 0)
+            {
+                int index = pseudoRNG.Next(normalCornerList.Count - 1);
+                return normalCornerList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public Mesh endCorner
+    {
+        get
+        {
+            if (endCornerList.Count != 0)
+            {
+                int index = pseudoRNG.Next(endCornerList.Count - 1);
+                return endCornerList[index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+}
+
+
 public class Maze_Architect : MonoBehaviour
 {
+    // Parameters for the maze generator.
     [SerializeField][Range(4, 80)] int cellWidth = 0;
     [SerializeField][Range(4, 80)] int cellHeight = 0;
     [SerializeField][Range(0, 1)] float corridorDirection = 0.5f;
@@ -540,22 +775,64 @@ public class Maze_Architect : MonoBehaviour
     [SerializeField] string seed = "lolerpoper";
     [SerializeField] bool useRandomSeed = true;
 
+    // Parameters for the maze theme.
+    // TODO: Dinamically get the zones names inside the zones folder.
+    [SerializeField] List<string> theme;
+
+    // Parameters for the maze builder.
+
     private Maze maze;
+    private ZoneMeshes zoneMeshes;
 
     void Start()
     {
+
         if (useRandomSeed)   
             seed = DateTime.Now.Ticks.ToString();
 
         GenerateMaze();
+        GenerateZoneAssets("Ruins");
+        BuildMaze();
+       
     }
 
     void GenerateMaze()
     {
+        Debug.Log("generating maze map...");
         maze = new Maze(cellWidth, cellHeight, seed, corridorDirection);
         maze.BestFirstOrdering();
         maze.SpawnChests(chestSpawnProvability);
         maze.AssignWallTypes();
+    }
+
+    void GenerateZoneAssets(string theme)
+    {
+        Debug.Log("generating zone meshes...");
+        zoneMeshes = new ZoneMeshes(theme, seed);
+    }
+
+    void BuildMaze()
+    {
+        Debug.Log("building maze...");
+
+        GameObject wall = Resources.Load("Wall", typeof(GameObject)) as GameObject;
+        Mesh mesh = zoneMeshes.normalWall;
+        wall.GetComponent<MeshFilter>().mesh = mesh;
+        wall.GetComponent<MeshCollider>().sharedMesh = mesh;
+
+        // Object creation testing.
+        //GameObject go = new GameObject("Wall");
+        //go.transform.position = new Vector3(0, 0, 0);
+        //go.transform.rotation = new Quaternion(0, 90, 90, 1);
+  
+        //go.AddComponent<MeshFilter>();
+        //go.AddComponent<MeshRenderer>();
+        //go.AddComponent<MeshCollider>();
+
+        //go.GetComponent<MeshRenderer>().material = Resources.Load("Materials/Gray", typeof(Material)) as Material;
+        //go.GetComponent<MeshCollider>().convex = true;
+        //go.GetComponent<MeshFilter>().mesh = zoneMeshes.normalWall;
+
     }
 
     // Helper function for visualization
@@ -608,7 +885,7 @@ public class Maze_Architect : MonoBehaviour
                             case WallType.Joint:
                                 Gizmos.color = new Color(0, 1, 0, 0.9f);
                                 break;
-                            case WallType.Unvisible:
+                            case WallType.invisible:
                                 Gizmos.color = new Color(0, 1, 1, 0.9f);
                                 break;
                             case WallType.outter:
