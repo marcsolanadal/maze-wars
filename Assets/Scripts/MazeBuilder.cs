@@ -75,45 +75,10 @@ public class Maze
     private Cell exit;
 
     // Pseudo RNG
-    private string seed;
     private System.Random pseudoRNG;
 
-    // Constructor overloading
-    //public Maze(string seed)
-    //{
-    //    Debug.Log("pre - width:" + width.ToString() + " heigth: " + height.ToString());
-
-    //    // Calculating maze size with walls
-    //    totalWidth = 2 * width + 1;
-    //    totalHeight = 2 * height + 1;
-
-    //    Debug.Log("post - width:" + totalWidth.ToString() + " heigth: " + totalHeight.ToString());
-
-
-    //    // Important default positions
-    //    // TODO: Implement a setRandomEntryPoint
-    //    // TODO: Change end variable for startPoint
-    //    end = new Cell(1, 1);
-
-    //    // Getting random seed
-    //    //this.seed = seed;
-    //    pseudoRNG = new System.Random(seed.GetHashCode());
-
-    //    // Creating map skeleton
-    //    map = new Cell[totalWidth, totalHeight];
-    //    GenerateSkeleton();
-
-    //    // Initialize neighbour list
-    //    pendingNeighbours = new List<Cell>();
-    //}
-    //public Maze(int width, int height, string seed) : this(seed)
-    //{
-    //    this.width = width;
-    //    this.height = height;
-    //}
     public Maze(int width, int height, string seed, float corridorDirection)
     {
-        this.seed = seed;
         this.corridorDirection = corridorDirection;
 
         // Calculating maze size with walls.
@@ -529,7 +494,7 @@ public class Maze
 
 public class ZoneMeshes
 {
-    private string zoneDirectoryPath = "./Assets/Resources/Zones/";
+    //private string zoneDirectoryPath = "./Assets/Resources/Zones/";
     private System.Random pseudoRNG;
 
     // Mesh lists for ground and chests.
@@ -632,7 +597,7 @@ public class ZoneMeshes
         {
             if (groundList.Count != 0)
             {
-                int index = pseudoRNG.Next(groundList.Count - 1);
+                int index = pseudoRNG.Next(groundList.Count);
                 return groundList[index];
             }
             else
@@ -647,7 +612,7 @@ public class ZoneMeshes
         {
             if (chestList.Count != 0)
             {
-                int index = pseudoRNG.Next(chestList.Count - 1);
+                int index = pseudoRNG.Next(chestList.Count);
                 return chestList[index];
             }
             else
@@ -662,7 +627,7 @@ public class ZoneMeshes
         {
             if (isolateWallList.Count != 0)
             {
-                int index = pseudoRNG.Next(isolateWallList.Count - 1);
+                int index = pseudoRNG.Next(isolateWallList.Count);
                 return isolateWallList[index];
             }
             else
@@ -677,7 +642,7 @@ public class ZoneMeshes
         {
             if (normalWallList.Count != 0)
             {
-                int index = pseudoRNG.Next(normalWallList.Count - 1);
+                int index = pseudoRNG.Next(normalWallList.Count);
                 return normalWallList[index];
             }
             else
@@ -692,7 +657,7 @@ public class ZoneMeshes
         {
             if (jointWallList.Count != 0)
             {
-                int index = pseudoRNG.Next(jointWallList.Count - 1);
+                int index = pseudoRNG.Next(jointWallList.Count);
                 return jointWallList[index];
             }
             else
@@ -707,7 +672,7 @@ public class ZoneMeshes
         {
             if (invisibleWallList.Count != 0)
             {
-                int index = pseudoRNG.Next(invisibleWallList.Count - 1);
+                int index = pseudoRNG.Next(invisibleWallList.Count);
                 return invisibleWallList[index];
             }
             else
@@ -722,7 +687,7 @@ public class ZoneMeshes
         {
             if (outterWallList.Count != 0)
             {
-                int index = pseudoRNG.Next(outterWallList.Count - 1);
+                int index = pseudoRNG.Next(outterWallList.Count);
                 return outterWallList[index];
             }
             else
@@ -737,7 +702,7 @@ public class ZoneMeshes
         {
             if (normalCornerList.Count != 0)
             {
-                int index = pseudoRNG.Next(normalCornerList.Count - 1);
+                int index = pseudoRNG.Next(normalCornerList.Count);
                 return normalCornerList[index];
             }
             else
@@ -752,7 +717,7 @@ public class ZoneMeshes
         {
             if (endCornerList.Count != 0)
             {
-                int index = pseudoRNG.Next(endCornerList.Count - 1);
+                int index = pseudoRNG.Next(endCornerList.Count);
                 return endCornerList[index];
             }
             else
@@ -764,8 +729,7 @@ public class ZoneMeshes
 
 }
 
-
-public class Maze_Architect : MonoBehaviour
+public class MazeBuilder : MonoBehaviour
 {
     // Parameters for the maze generator.
     [SerializeField][Range(4, 80)] int cellWidth = 0;
@@ -777,9 +741,11 @@ public class Maze_Architect : MonoBehaviour
 
     // Parameters for the maze theme.
     // TODO: Dinamically get the zones names inside the zones folder.
-    [SerializeField] List<string> theme;
+    [SerializeField] List<string> theme = new List<string>();
 
     // Parameters for the maze builder.
+    [SerializeField] GameObject wallPrefab;
+    [SerializeField] GameObject chestPrefab;
 
     private Maze maze;
     private ZoneMeshes zoneMeshes;
@@ -815,24 +781,96 @@ public class Maze_Architect : MonoBehaviour
     {
         Debug.Log("building maze...");
 
-        GameObject wall = Resources.Load("Wall", typeof(GameObject)) as GameObject;
-        Mesh mesh = zoneMeshes.normalWall;
-        wall.GetComponent<MeshFilter>().mesh = mesh;
-        wall.GetComponent<MeshCollider>().sharedMesh = mesh;
+        int mult = 2;
 
-        // Object creation testing.
-        //GameObject go = new GameObject("Wall");
-        //go.transform.position = new Vector3(0, 0, 0);
-        //go.transform.rotation = new Quaternion(0, 90, 90, 1);
-  
-        //go.AddComponent<MeshFilter>();
-        //go.AddComponent<MeshRenderer>();
-        //go.AddComponent<MeshCollider>();
+        for (int x = 0; x < maze.totalCellsWidth; x++)
+        {
+            for (int y = 0; y < maze.totalCellsHeight; y++)
+            {
+                switch (maze.map[x, y].type)
+                {
+                    case CellType.Free:
+                        //Gizmos.color = Color.gray;
+                        break;
+                    case CellType.Wall:
+                        switch (maze.map[x, y].wall)
+                        {
+                            case WallType.Isolate:
+                                CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.isolateWall, new Color(0.73f, 0.67f, 0.26f));
+                                break;
+                            case WallType.Corner:
+                                switch (maze.map[x, y].corner)
+                                {
+                                    case CornerType.None:
+                                        //Gizmos.color = new Color(0, 1, 0, 0.2f);
+                                        break;
+                                    case CornerType.DownLeft:
+                                        //Gizmos.color = new Color(0, 50f, 0, 0.5f);
+                                        break;
+                                    case CornerType.DownRight:
+                                        //Gizmos.color = new Color(0, 100f, 0, 0.5f);
+                                        break;
+                                    case CornerType.UpLeft:
+                                        //Gizmos.color = new Color(0, 1, 0, 0.5f);
+                                        break;
+                                    case CornerType.UpRight:
+                                        //Gizmos.color = new Color(0, 1, 0, 0.4f);
+                                        break;
+                                    case CornerType.End:
+                                        //Gizmos.color = new Color(0, 1, 0.5f, 0.7f);
+                                        break;
+                                    default:
+                                        //Gizmos.color = new Color(0, 1, 0, 0.5f);
+                                        break;
+                                }
+                                break;
+                            case WallType.Normal:
+                                CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.normalWall, new Color(0, 1, 0, 0.5f));
+                                break;
+                            case WallType.Joint:
+                                CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.jointWall, new Color(0, 1, 0, 0.9f));
+                                break;
+                            case WallType.invisible:
+                                CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.invisibleWall, new Color(0, 1, 1, 0.9f));
+                                break;
+                            case WallType.outter:
+                                CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.outterWall, new Color(0.84f, 0.63f, 0.38f));
+                                break;
+                            case WallType.None:
+                                //Gizmos.color = Color.gray;
+                                break;
+                        }
+                        break;
+                    case CellType.Chest:
+                        //Gizmos.color = Color.yellow;
+                        break;
+                    case CellType.Visited:
+                        //Gizmos.color = Color.gray;
+                        break;
+                    case CellType.Listed:
+                        //Gizmos.color = Color.gray;
+                        break;
+                    case CellType.Exit:
+                        //Gizmos.color = Color.gray;
+                        break;
+                }
+            }
+        }
 
-        //go.GetComponent<MeshRenderer>().material = Resources.Load("Materials/Gray", typeof(Material)) as Material;
-        //go.GetComponent<MeshCollider>().convex = true;
-        //go.GetComponent<MeshFilter>().mesh = zoneMeshes.normalWall;
+    }
 
+    private GameObject CreateWall(Vector3 position, Mesh mesh, Color color)
+    {
+        // TODO: This is really not optimal. We should create only one material for each type of wall.
+        Material material = new Material(Shader.Find("Standard"));
+        material.color = color;
+
+        wallPrefab.GetComponent<Transform>().position = position;
+        wallPrefab.GetComponent<MeshFilter>().mesh = mesh;
+        wallPrefab.GetComponent<MeshCollider>().sharedMesh = mesh;
+        wallPrefab.GetComponent<MeshRenderer>().material = material;
+
+        return Instantiate(wallPrefab) as GameObject;
     }
 
     // Helper function for visualization
@@ -910,7 +948,7 @@ public class Maze_Architect : MonoBehaviour
                         break;
                 }
 
-                Vector3 pos = new Vector3(-maze.totalCellsWidth / 2 + x + .5f, 0, -maze.totalCellsHeight / 2 + y + .5f);
+                Vector3 pos = new Vector3(-maze.totalCellsWidth / 2 + x + .5f, 10, -maze.totalCellsHeight / 2 + y + .5f);
                 Gizmos.DrawCube(pos, Vector3.one);
             }
         }

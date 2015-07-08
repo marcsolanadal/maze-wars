@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class AssetTesting : MonoBehaviour {
+public class WorldManager : MonoBehaviour {
 
     public GameObject cube;
 

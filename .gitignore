@@ -5,7 +5,6 @@
 # ==================== #
 # Art and 3d resources #
 # ==================== #
-#[Rr]esources/*
 *.blend
 *.blend.meta
 
