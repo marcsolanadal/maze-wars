@@ -825,6 +825,11 @@ public class MazeBuilder : MonoBehaviour
                                 }
                                 break;
                             case WallType.Normal:
+                                //if (normalWallMaterial != null)
+                                //{
+                                //    // Create material
+                                //}
+                                //CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.normalWall, );
                                 CreateWall(new Vector3(mult * x, 0, mult * y), zoneMeshes.normalWall, new Color(0, 1, 0, 0.5f));
                                 break;
                             case WallType.Joint:
@@ -842,6 +847,7 @@ public class MazeBuilder : MonoBehaviour
                         }
                         break;
                     case CellType.Chest:
+                        //CreateChest(new Vector3(mult*x, 0, mult *y), zoneMeshes.chest, )
                         //Gizmos.color = Color.yellow;
                         break;
                     case CellType.Visited:
@@ -870,7 +876,29 @@ public class MazeBuilder : MonoBehaviour
         wallPrefab.GetComponent<MeshCollider>().sharedMesh = mesh;
         wallPrefab.GetComponent<MeshRenderer>().material = material;
 
-        return Instantiate(wallPrefab) as GameObject;
+        return Instantiate(wallPrefab);
+    }
+     
+    private GameObject CreateChest(Vector3 position, float rotation, Mesh mesh, Material material)
+    {
+        // TODO: Generating Blender parameters to randomize the chest.
+
+        // TODO: Depending on the size of the chest we choose the item inside.
+
+        // Position and orientation.
+        chestPrefab.GetComponent<Transform>().position = position;
+        chestPrefab.GetComponent<Transform>().rotation = new Quaternion(0, rotation, 0, 0);
+
+        // Assigning the mesh to the renderer and collider.
+        chestPrefab.GetComponent<MeshFilter>().mesh = mesh;
+        chestPrefab.GetComponent<MeshCollider>().sharedMesh = mesh;
+
+        // Assigning material with randomly chosen texture.
+        chestPrefab.GetComponent<MeshRenderer>().material = material;
+
+        // Assigning animations to the chest.
+
+        return Instantiate(chestPrefab);
     }
 
     // Helper function for visualization

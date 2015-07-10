@@ -7,6 +7,12 @@
 # ==================== #
 *.blend
 *.blend.meta
+*.wav
+*.wav.meta
+*.fbx
+*.fbx.meta
+*.png
+*.png.meta
 
 # =============== #
 # Unity generated #
