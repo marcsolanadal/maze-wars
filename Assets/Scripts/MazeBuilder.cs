@@ -752,14 +752,12 @@ public class MazeBuilder : MonoBehaviour
 
     void Start()
     {
-
         if (useRandomSeed)   
             seed = DateTime.Now.Ticks.ToString();
 
         GenerateMaze();
         GenerateZoneAssets("Ruins");
         BuildMaze();
-       
     }
 
     void GenerateMaze()
@@ -879,8 +877,9 @@ public class MazeBuilder : MonoBehaviour
         return Instantiate(wallPrefab);
     }
      
-    private GameObject CreateChest(Vector3 position, float rotation, Mesh mesh, Material material)
+    private GameObject CreateChest(Vector3 position, float rotation, GameObject prefab, Material material)
     {
+
         // TODO: Generating Blender parameters to randomize the chest.
 
         // TODO: Depending on the size of the chest we choose the item inside.
@@ -890,8 +889,8 @@ public class MazeBuilder : MonoBehaviour
         chestPrefab.GetComponent<Transform>().rotation = new Quaternion(0, rotation, 0, 0);
 
         // Assigning the mesh to the renderer and collider.
-        chestPrefab.GetComponent<MeshFilter>().mesh = mesh;
-        chestPrefab.GetComponent<MeshCollider>().sharedMesh = mesh;
+        //chestPrefab.GetComponent<MeshFilter>().mesh = mesh;
+        //chestPrefab.GetComponent<MeshCollider>().sharedMesh = mesh;
 
         // Assigning material with randomly chosen texture.
         chestPrefab.GetComponent<MeshRenderer>().material = material;
