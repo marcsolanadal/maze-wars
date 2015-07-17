@@ -1,6 +1,5 @@
-﻿using System.Collections;
-
-public class Utility
+﻿
+public static class Utility
 {
     // Math functions for identifying odd and even numbers.
     public static bool Even(int num)
@@ -24,4 +23,9 @@ public struct IntVector2
         this.x = x;
         this.y = y;
     }
+}
+
+public class PseudoRNG : System.Random
+{
+
 }
