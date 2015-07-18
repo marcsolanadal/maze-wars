@@ -7,10 +7,12 @@
 # ==================== #
 *.blend
 *.blend.meta
-*.wav
-*.wav.meta
 *.fbx
 *.fbx.meta
+*.wav
+*.wav.meta
+*.mp3
+*.mp3.meta
 *.png
 *.png.meta
 
