@@ -4,11 +4,11 @@ using System.Collections.Generic;
 // Why use a static class instead of the simple dictionary?
 // That class will be accessible through all our code so we will
 // be able to create objects in all our classes.
-public static class Generators
+public static class GeneratorDictionary
 {
-    public static Dictionary<string, IGenerator> generators;
+    private static Dictionary<string, IGenerator> generators;
 
-    public static void FillGeneratorDictionary()
+    public static void FillWithGenerators()
     {
         // Initializing the generator dictionary.
         generators = new Dictionary<string, IGenerator>();

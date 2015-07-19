@@ -1,35 +1,25 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using System;
 
 public class ItemManager : MonoBehaviour
 {
     [SerializeField] int itemNumber = 2;
-    [SerializeField] string seed = "lolerpoper";
-    [SerializeField] bool useRandomSeed = true;
-
-    private System.Random pseudoRNG;
     int spacing = 2;
 
-    GameObject[] itemList;
+    List<Item> itemList;
 
-    public static Dictionary<string, IGenerator> generators;
-
-    void Start ()
+    void Awake()
     {
-        if (useRandomSeed)
-            seed = DateTime.Now.Ticks.ToString();
+        // TODO: Put this initializations in the first loaded scene.
+        GeneratorDictionary.FillWithGenerators();
+        ItemDictionary.FillWithItems();
 
-        // Getting random seed.
-        pseudoRNG = new System.Random(seed.GetHashCode());
+        itemList = new List<Item>();
+    }
 
-        // Initializing the generator dictionary.
-        generators = new Dictionary<string, IGenerator>();
-
-        Generators.FillGeneratorDictionary();
-
-        CreateItems(); 
-
+    void Start()
+    {
+        CreateItems();
     }
 
     void CreateItems()
@@ -38,11 +28,20 @@ public class ItemManager : MonoBehaviour
         {
             for (int y = 0; y < itemNumber; y++)
             {
-                GameObject item = Generators.Create("Mask");
+                GameObject item = ItemDictionary.Create("Mask");
                 item.transform.position = new Vector3(x * spacing, y * spacing, 0);
                 Instantiate(item);
             }
         }
     }
 
+    void CreateItemFromList()
+    {
+
+    }
+
+    void CreateItemList()
+    {
+
+    }
 }
