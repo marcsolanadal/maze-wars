@@ -70,9 +70,14 @@ public class Maze
     private int totalHeight;
     private float corridorDirection;
 
-    // Important maze positions
+    // Important maze positions.
     private Cell entrance;
     private Cell exit;
+
+    // Maze info.
+    private int cellNumber;
+    private int chestNumber;
+    private int trapNumber;
 
     // Pseudo RNG
     private System.Random pseudoRNG;
@@ -84,6 +89,9 @@ public class Maze
         // Calculating maze size with walls.
         totalWidth = 2 * width + 1;
         totalHeight = 2 * height + 1;
+
+        // Setting maze size information.
+        cellNumber = totalWidth * totalHeight;
 
         // Getting random seed.
         pseudoRNG = new System.Random(seed.GetHashCode());
@@ -423,6 +431,7 @@ public class Maze
     public void SpawnChests(float provability)
     {
         Debug.Log("spawning chests...");
+        int spawnedChestsNumber = 0;
         for (int x = 0; x < totalWidth; x++)
         {
             for (int y = 0; y < totalHeight; y++)
@@ -432,10 +441,15 @@ public class Maze
                     if (pseudoRNG.NextDouble() <= provability)
                     {
                         map[x, y].type = CellType.Chest;
+                        spawnedChestsNumber++;
                     }
                 }    
             }
         }
+        Debug.Log("Total number of spawned chests: " + spawnedChestsNumber);
+
+        // Setting the information about the maze.
+        chestNumber = spawnedChestsNumber;
     }
 
     // TODO: Operations like spawning chest or assigning wall types in the same loop.
@@ -490,6 +504,11 @@ public class Maze
         }
     }
 
+    public int[] GetMazeInfo()
+    {
+        int[] info = { cellNumber, chestNumber, trapNumber };
+        return info;
+    }
 }
 
 public class ZoneMeshes

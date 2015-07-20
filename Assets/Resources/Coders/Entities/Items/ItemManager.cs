@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class ItemManager : MonoBehaviour
 {
-    [SerializeField] int itemNumber = 2;
+    [SerializeField] int itemNumber = 10;
     int spacing = 2;
 
     List<Item> itemList;
@@ -28,7 +28,7 @@ public class ItemManager : MonoBehaviour
         {
             for (int y = 0; y < itemNumber; y++)
             {
-                GameObject item = ItemDictionary.Create("Mask");
+                GameObject item = ItemDictionary.Create("Torch");
                 item.transform.position = new Vector3(x * spacing, y * spacing, 0);
                 Instantiate(item);
             }

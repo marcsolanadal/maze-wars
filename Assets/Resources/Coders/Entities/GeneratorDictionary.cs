@@ -15,6 +15,7 @@ public static class GeneratorDictionary
 
         // Filling the dictionary with generators.
         generators.Add("Mask", new MaskGenerator());
+        generators.Add("Torch", new TorchGenerator());
     }
 
     public static GameObject Create(string itemName)
