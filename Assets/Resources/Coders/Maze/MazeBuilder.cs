@@ -9,6 +9,7 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField][Range(4, 80)] int cellHeight = 0;
     [SerializeField][Range(0, 1)] float corridorDirection = 0.5f;
     [SerializeField][Range(0, 1)] float chestSpawnProvability = 0.5f;
+    [SerializeField][Range(0, 0.2f)] float trapSpawnProvability = 0.05f;
     [SerializeField] string seed = "lolerpoper";
     [SerializeField] bool useRandomSeed = true;
 
@@ -38,8 +39,7 @@ public class MazeBuilder : MonoBehaviour
         Debug.Log("generating maze map...");
         maze = new Maze(cellWidth, cellHeight, seed, corridorDirection);
         maze.BestFirstOrdering();
-        maze.SpawnChests(chestSpawnProvability);
-        maze.AssignWallTypes();
+        maze.AssignCellTypes(chestSpawnProvability, trapSpawnProvability);
     }
 
     void GenerateZoneAssets(string theme)
@@ -174,6 +174,7 @@ public class MazeBuilder : MonoBehaviour
     }
 
     // Helper function for visualization
+    // TODO: It must be a way to improve this shitty code.
     void OnDrawGizmos()
     {
         for (int x = 0; x < maze.totalCellsWidth; x++)
@@ -236,6 +237,9 @@ public class MazeBuilder : MonoBehaviour
                         break;
                     case CellType.Chest:
                         Gizmos.color = Color.yellow;
+                        break;
+                    case CellType.Trap:
+                        Gizmos.color = Color.red;
                         break;
                     case CellType.Visited:
                         Gizmos.color = Color.gray;

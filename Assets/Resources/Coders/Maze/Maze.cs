@@ -368,61 +368,45 @@ public class Maze
 
     }
 
-    // TODO: Operations like spawning chest or assigning wall types in the same loop.
-    public void SpawnChests(float provability)
+    public void AssignCellTypes(float chestProvability, float trapProvability)
     {
-        Debug.Log("spawning chests...");
         chestNumber = 0;
+        trapNumber = 0;
+
         for (int x = 0; x < totalWidth; x++)
         {
             for (int y = 0; y < totalHeight; y++)
             {
+                // Generating Chests.
                 if (map[x, y].type == CellType.Visited && DetectNumberWalls(map[x, y]) >= 3)
                 {
-                    if (pseudoRNG.NextDouble() <= provability)
+                    if (pseudoRNG.NextDouble() <= chestProvability)
                     {
                         map[x, y].type = CellType.Chest;
                         chestNumber++;
                     }
                 }
-            }
-        }
-        Debug.Log("Total number of spawned chests: " + chestNumber);
-    }
-    public void SpawnTraps(float provability)
-    {
-        Debug.Log("spawning traps...");
-        trapNumber = 0;
-        for (int x = 0; x < totalWidth; x++)
-        {
-            for (int y = 0; y < totalHeight; y++)
-            {
-                if (map[x, y].type == CellType.Visited && DetectNumberWalls(map[x, y]) == 2)
+
+                // Generating Traps.
+                if (map[x, y].type == CellType.Visited || map[x, y].type == CellType.Free
+                    && DetectNumberWalls(map[x, y]) <= 2)
                 {
-                    if (pseudoRNG.NextDouble() <= provability)
+                    if (pseudoRNG.NextDouble() <= trapProvability)
                     {
                         map[x, y].type = CellType.Trap;
                         trapNumber++;
                     }
                 }
-            }
-        }
-        Debug.Log("Total number of spawned traps: " + trapNumber);
-    }
-    public void AssignWallTypes()
-    {
-        Debug.Log("assigning wall types...");
-        for (int x = 0; x < totalWidth; x++)
-        {
-            for (int y = 0; y < totalHeight; y++)
-            {
-                // Checking if it is an outter wall.
+
+                // Assigning wall types.
                 if (x == 0 || y == 0 || x == totalWidth - 1 || y == totalHeight - 1)
                 {
                     map[x, y].wall = WallType.outter;
                 }
                 else
                 {
+                    // TODO: I don't like this switch statement. 
+                    // Maybe there's a better disign option?
                     switch (DetectNumberWalls(map[x, y]))
                     {
                         case 0:
@@ -464,4 +448,4 @@ public class Maze
     {
         return new int[] { cellNumber, chestNumber, trapNumber };
     }
-}
+} 

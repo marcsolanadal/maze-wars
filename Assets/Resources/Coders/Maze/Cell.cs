@@ -1,10 +1,7 @@
-﻿using UnityEngine;
-using System.Collections;
-
+﻿
 public enum CellType { Free, Wall, Chest, Trap, Visited, Listed, Exit };
 public enum WallType { None, Isolate, Corner, Normal, Joint, invisible, outter };
 public enum CornerType { None, End, UpLeft, UpRight, DownLeft, DownRight };
-public enum TrapType { Floor, SingleWall, DoubleWall, Ceiling };
 
 public class Cell
 {
@@ -16,12 +13,12 @@ public class Cell
 
     public Cell(int x, int y)
     {
-        this.position.x = x;
-        this.position.y = y;
+        position.x = x;
+        position.y = y;
     }
     public Cell(int x, int y, CellType type) : this(x, y)
     {
-        this.cellType = type;
+        cellType = type;
     }
     public Cell(IntVector2 position)
     {
@@ -29,7 +26,7 @@ public class Cell
     }
     public Cell(IntVector2 position, CellType type) : this(position)
     {
-        this.cellType = type;
+        cellType = type;
     }
 
     public CellType type
@@ -50,12 +47,12 @@ public class Cell
 
     public bool IsFreeable()
     {
-        return (Utility.Odd(this.position.x) && Utility.Odd(this.position.y)) ? true : false;
+        return (Utility.Odd(position.x) && Utility.Odd(position.y)) ? true : false;
     }
 
     public bool Visited()
     {
-        return (this.type == CellType.Visited) ? true : false;
+        return (type == CellType.Visited) ? true : false;
     }
 
 }
