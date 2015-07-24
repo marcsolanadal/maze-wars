@@ -1,8 +1,80 @@
-﻿using UnityEngine;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
+public enum CellType { Free, Wall, Chest, Trap, Visited, Listed, Exit };
+public enum WallType { None, Isolate, Corner, Normal, Joint, invisible, outter };
+public enum CornerType { None, End, UpLeft, UpRight, DownLeft, DownRight };
+public enum TrapType { Floor, SingleWall, DoubleWall, Ceiling };
+
+public interface ICellable
+{
+    int[] getPosition();
+    int[] getBoundaries();
+}
+
+public class Cell : ICellable
+{
+    // TODO: This should be only read only from the outside 
+    // and be modifiable in this class.
+    public int x { get; set; }
+    public int y { get; set; }
+
+    private CellType cellType;
+    private WallType wallType;
+    private CornerType cornerType;
+
+    public Cell(int x, int y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+    public Cell(int x, int y, CellType type) : this(x, y)
+    {
+        cellType = type;
+    }
+
+    public CellType type
+    {
+        get { return cellType; }
+        set { cellType = value; }
+    }
+
+    public WallType wall
+    {
+        get { return (cellType == CellType.Wall) ? wallType : WallType.None; }
+        set { wallType = value; }
+    }
+    public CornerType corner
+    {
+        get { return (wallType == WallType.Corner) ? cornerType : CornerType.None; }
+        set { cornerType = value; }
+    }
+
+    // Interface methods.
+    public int[] getPosition()
+    {
+        return new int[]{ x, y };
+    }
+    public int[] getBoundaries()
+    {
+        return new int[]{ x, y };
+    }
+
+    public bool IsFreeable()
+    {
+        return (Utility.Odd(x) && Utility.Odd(y)) ? true : false;
+    }
+    public bool Visited()
+    {
+        return (cellType == CellType.Visited) ? true : false;
+    }
+
+
+}
+
+
 
 public class Maze
-{
+{ 
     public Cell[,] map;
     private List<Cell> pendingNeighbours;
 
@@ -20,7 +92,7 @@ public class Maze
     private int chestNumber;
     private int trapNumber;
 
-    // Pseudo RNG
+    // Pseudo RNG.
     private System.Random pseudoRNG;
 
     public Maze(int width, int height, string seed, float corridorDirection)
@@ -49,7 +121,15 @@ public class Maze
         SetRandomExit();
     }
 
-    // This ones are only for the gizmo
+    public Cell Entrance
+    {
+        get { return entrance; }
+    }
+    public Cell Exit
+    {
+        get { return exit; }
+    }
+
     public int totalCellsWidth
     {
         get { return totalWidth; }
@@ -85,31 +165,29 @@ public class Maze
         }
     }
 
-    private bool InsideMap(IntVector2 position)
+    // position[0] = x
+    // position[1] = y
+    // boundaries[0] = x + width
+    // boundaries[1] = y + height
+    private bool InsideMap<T>(T cellable) where T : ICellable
     {
-        return (position.x >= 0 && position.x < totalWidth && position.y >= 0 && position.y < totalHeight) ? true : false;
-    }
+        int[] position = cellable.getPosition();
+        int[] boundaries = cellable.getBoundaries();
 
-    private bool Visited(Cell cell)
-    {
-        return (cell.type == CellType.Visited) ? true : false;
+        return (position[0] >= 0 && position[1] >= 0 &&
+                boundaries[0] < totalWidth && boundaries[1] < totalHeight) ? true : false;
     }
 
     private bool ListedNeighbour(Cell cell)
     {
-        return (InsideMap(cell.position) && cell.type == CellType.Listed) ? true : false;
-    }
-
-    private void MarkCellAsVisited(Cell cell)
-    {
-        cell.type = (cell.IsFreeable()) ? CellType.Visited : cell.type;
+        return (InsideMap(cell) && cell.type == CellType.Listed) ? true : false;
     }
 
     private void MarkNeighboursAsListed(List<Cell> neighbours)
     {
         neighbours.ForEach(delegate (Cell neighbour)
         {
-            map[neighbour.position.x, neighbour.position.y].type = CellType.Listed;
+            map[neighbour.x, neighbour.y].type = CellType.Listed;
         });
     }
 
@@ -119,13 +197,13 @@ public class Maze
         {
             int x = pseudoRNG.Next(totalCellsWidth);
             entrance = new Cell(x, 0);
-        } while (map[entrance.position.x, 1].type != CellType.Free);
+        } while (map[entrance.x, 1].type != CellType.Free);
 
         // Set the entrance point into the map.
-        map[entrance.position.x, entrance.position.y].type = CellType.Exit;
+        map[entrance.x, entrance.y].type = CellType.Exit;
 
-        // Displace the entranance one cell up for the algorithm.
-        entrance = map[entrance.position.x, 1];
+        // Move the entranance one cell up for the algorithm.
+        entrance = map[entrance.x, 1];
     }
 
     private void SetRandomExit()
@@ -134,35 +212,35 @@ public class Maze
         {
             int x = pseudoRNG.Next(totalCellsWidth - 1);
             exit = new Cell(x, totalCellsHeight - 1);
-        } while (map[exit.position.x, totalCellsHeight - 2].type != CellType.Free);
+        } while (map[exit.x, totalCellsHeight - 2].type != CellType.Free);
 
         // Current exit point as exit into the map.
-        map[exit.position.x, exit.position.y].type = CellType.Exit;
+        map[exit.x, exit.y].type = CellType.Exit;
 
         // Exit point into the upper outter wall.
-        exit = map[exit.position.x, totalCellsHeight - 1];
+        exit = map[exit.x, totalCellsHeight - 1];
     }
 
     private void RemoveWall(Cell fromCell, Cell toCell)
     {
         // Detecting the direction of the move for the X axis and removing the wall acordingly.
-        if (toCell.position.x - fromCell.position.x > 0)
+        if (toCell.x - fromCell.x > 0)
         {
-            map[toCell.position.x - 1, toCell.position.y].type = CellType.Free;
+            map[toCell.x - 1, toCell.y].type = CellType.Free;
         }
-        else if (toCell.position.x - fromCell.position.x < 0)
+        else if (toCell.x - fromCell.x < 0)
         {
-            map[toCell.position.x + 1, toCell.position.y].type = CellType.Free;
+            map[toCell.x + 1, toCell.y].type = CellType.Free;
         }
 
         // Detecting the direction of the move for the Y axis and removing the wall acordingly.
-        if (toCell.position.y - fromCell.position.y > 0)
+        if (toCell.y - fromCell.y > 0)
         {
-            map[toCell.position.x, toCell.position.y - 1].type = CellType.Free;
+            map[toCell.x, toCell.y - 1].type = CellType.Free;
         }
-        else if (toCell.position.y - fromCell.position.y < 0)
+        else if (toCell.y - fromCell.y < 0)
         {
-            map[toCell.position.x, toCell.position.y + 1].type = CellType.Free;
+            map[toCell.x, toCell.y + 1].type = CellType.Free;
         }
     }
 
@@ -185,14 +263,16 @@ public class Maze
         List<Cell> currentNeighbours = new List<Cell>();
 
         // Getting neighbours in the X axis.
-        for (int i = currentCell.position.x - spacing; i <= currentCell.position.x + spacing; i += spacing)
+        for (int i = currentCell.x - spacing; i <= currentCell.x + spacing; i += spacing)
         {
             // First we need to check if the position of the possible cell will be in map bounds.
-            if (InsideMap(new IntVector2(i, currentCell.position.y)))
+            //if (InsideMap(new IntVector2(i, currentCell.y)))
+            if(InsideMap(new Cell(i, currentCell.y)))
+            //if(InsideMap(map[i, currentCell.y]))
             {
-                Cell neighbour = map[i, currentCell.position.y];
+                Cell neighbour = map[i, currentCell.y];
                 // Discarting the currentCell as neighbour.
-                if (currentCell.position.x != neighbour.position.x)
+                if (currentCell.x != neighbour.x)
                 {
                     // Looking for seed cells?
                     if (spacing == 2)
@@ -209,12 +289,12 @@ public class Maze
         }
 
         // Getting neighbours in the Y axis.
-        for (int n = currentCell.position.y - spacing; n <= currentCell.position.y + spacing; n += spacing)
+        for (int n = currentCell.y - spacing; n <= currentCell.y + spacing; n += spacing)
         {
-            if (InsideMap(new IntVector2(currentCell.position.x, n)))
+            if (InsideMap(new Cell(currentCell.x, n)))
             {
-                Cell neighbour = map[currentCell.position.x, n];
-                if (currentCell.position.y != neighbour.position.y)
+                Cell neighbour = map[currentCell.x, n];
+                if (currentCell.y != neighbour.y)
                 {
                     // Looking for seed cells?
                     if (spacing == 2)
@@ -248,8 +328,8 @@ public class Maze
 
         // Extract the positional information from the next cell.
         Cell nextCell = currentCellNeighbours[randomIndex];
-        int nextX = nextCell.position.x;
-        int nextY = nextCell.position.y;
+        int nextX = nextCell.x;
+        int nextY = nextCell.y;
 
         // Mark the chosen next cell as visited.
         map[nextX, nextY].type = CellType.Visited;
@@ -293,20 +373,24 @@ public class Maze
         }
         else
         {
-            if (wallNeighbours[0].position.y == wallNeighbours[1].position.y ||
-                wallNeighbours[0].position.x == wallNeighbours[1].position.x)
+            if (wallNeighbours[0].y == wallNeighbours[1].y ||
+                wallNeighbours[0].x == wallNeighbours[1].x)
             {
                 return CornerType.None;
             }
             else
             {
-                if (wallNeighbours[0].position.y > wallNeighbours[1].position.y)
+                if (wallNeighbours[0].y > wallNeighbours[1].y)
                 {
-                    return (wallNeighbours[0].position.x > wallNeighbours[1].position.x) ? CornerType.UpLeft : CornerType.UpRight;
+                    return (wallNeighbours[0].x > wallNeighbours[1].x) 
+                        ? CornerType.UpLeft 
+                        : CornerType.UpRight;
                 }
                 else
                 {
-                    return (wallNeighbours[0].position.x > wallNeighbours[1].position.x) ? CornerType.DownLeft : CornerType.DownRight;
+                    return (wallNeighbours[0].x > wallNeighbours[1].x) 
+                        ? CornerType.DownLeft 
+                        : CornerType.DownRight;
                 }
             }
         }
@@ -336,7 +420,7 @@ public class Maze
                 pendingNeighbours.Remove(nextCell);
 
                 // Mark the cell as visited.
-                map[nextCell.position.x, nextCell.position.y].type = CellType.Visited;
+                map[nextCell.x, nextCell.y].type = CellType.Visited;
 
                 // Get the neighbours of next cell.
                 localNeighbours = GetNeightbours(nextCell, 2);
@@ -448,4 +532,38 @@ public class Maze
     {
         return new int[] { cellNumber, chestNumber, trapNumber };
     }
-} 
+
+}
+
+public class CellGroup
+{
+    protected List<Cell> group;
+}
+
+public class Room : CellGroup, ICellable
+{
+    int x;
+    int y;
+    int height;
+    int width;
+
+    public Room(int x, int y, int width, int height)
+    {
+        this.x = x;
+        this.y = y;
+        this.height = height;
+        this.width = width;
+    }
+
+    public int[] getPosition()
+    {
+        return new int[] { x, y };
+    }
+
+    public int[] getBoundaries()
+    {
+        return new int[] { x + width, y + height };
+    }
+
+}
+

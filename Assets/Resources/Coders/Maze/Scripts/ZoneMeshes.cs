@@ -17,7 +17,7 @@ public class ZoneMeshes
     List<Mesh> invisibleWallList = new List<Mesh>();
     List<Mesh> outterWallList = new List<Mesh>();
 
-    // Mesh lists for correnr types.
+    // Mesh lists for corner types.
     List<Mesh> normalCornerList = new List<Mesh>();
     List<Mesh> endCornerList = new List<Mesh>();
 
@@ -32,7 +32,7 @@ public class ZoneMeshes
 
         // Throw exception if the zone doesn't exist.
 
-        string localPath = "Zones/" + zoneType + "/Maze/";
+        string localPath = "Artists/Zones/" + zoneType + "/Maze/";
 
         // Loading all ground meshes.
         meshList = Resources.LoadAll<Mesh>(localPath + "Ground");

@@ -20,6 +20,7 @@ public class MazeBuilder : MonoBehaviour
     // Parameters for the maze builder.
     [SerializeField] GameObject wallPrefab;
     [SerializeField] GameObject chestPrefab;
+    [SerializeField] GameObject roomPrefab;
 
     private Maze maze;
     private ZoneMeshes zoneMeshes;
@@ -32,6 +33,7 @@ public class MazeBuilder : MonoBehaviour
         GenerateMaze();
         GenerateZoneAssets("Ruins");
         BuildMaze();
+        AttachRoomsToMaze(roomPrefab);
     }
 
     void GenerateMaze()
@@ -171,6 +173,22 @@ public class MazeBuilder : MonoBehaviour
         // Assigning animations to the chest.
 
         return Instantiate(chestPrefab);
+    }
+
+    private void AttachRoomsToMaze(GameObject prefab)
+    {
+        // Creating starting room.
+        GameObject startRoom = Instantiate(prefab);
+
+        //GameObject entrance = startRoom.
+        Vector3 mazeEntrance = new Vector3(maze.Entrance.x * 2, 0, 0);
+        startRoom.transform.position = mazeEntrance;
+
+        // Creating end room.
+        //GameObject endRoom = Instantiate(prefab);
+        //Vector3 mazeExit = new Vector3(maze.Exit.position.x, maze.Exit.position.y);
+        //endRoom.transform.Rotate(Vector3.up, 180);
+        //startRoom.transform.position = mazeExit;
     }
 
     // Helper function for visualization
